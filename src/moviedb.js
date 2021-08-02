@@ -55,13 +55,23 @@ program
   .option("--save", "Save the movies to /files/movies")
   .option("--local", "Fetch the movies from /files/movies")
   .action(async function handleAction(options) {
+    let json = {};
     spinner.start(
       `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
     );
     const personId = parseInt(options.id);
-    const json = await request.getPerson(personId);
-    render.renderPersonDetails(json);
-    spinner.succeed("Person data loaded");
+    if (options.local === true) {
+      json = await fileSystem.loadPerson();
+    } else {
+      json = await request.getPerson(personId);
+    }
+    if (options.save === true) {
+      fileSystem.savePerson(json);
+      spinner.succeed("Person data saved to file");
+    } else {
+      render.renderPersonDetails(json);
+      spinner.succeed("Person data loaded");
+    }
   });
 
 program
