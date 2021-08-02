@@ -108,7 +108,6 @@ program
                         type: "number",
                         name: "page",
                         message: "What page do you want to fetch?",
-                        default: 1,
                         validate(value) {
                           if (value === parseInt(value)) {
                             return true;
@@ -173,6 +172,21 @@ program
                   break;
               }
             });
+        } else {
+          if (answers["actionOption"] === "A specific movie") {
+            await inquirer
+              .prompt([
+                {
+                  type: "confirm",
+                  name: "reviewOption",
+                  message: "Fetch de reviews?",
+                  default: false,
+                },
+              ])
+              .then((movieAnswers) => {
+                answers = { ...answers, ...movieAnswers };
+              });
+          }
         }
         const {
           page,
@@ -185,19 +199,20 @@ program
         } = answers;
         const isLocal = !fetchOption;
         const isNowPlaying = actionOption === "Now playing movies";
+        const isInteractive = true;
         switch (answers["actionOption"]) {
           case "Popular movies":
           case "Now playing movies":
-            getMovies(page, isLocal, isNowPlaying, saveOption);
+            getMovies(page, isLocal, isNowPlaying, saveOption, isInteractive);
             break;
           case "A specific movie":
-            getMovie(movieId, reviewOption, isLocal, saveOption);
+            getMovie(movieId, reviewOption, isLocal, saveOption, isInteractive);
             break;
           case "Popular persons":
-            getPersons(page, isLocal, saveOption);
+            getPersons(page, isLocal, saveOption, isInteractive);
             break;
           case "A specific person":
-            getPerson(personId, isLocal, saveOption);
+            getPerson(personId, isLocal, saveOption, isInteractive);
             break;
 
           default:
@@ -213,7 +228,7 @@ program
 
 program.parse(process.argv);
 
-async function getMovies(page, isLocal, isNowPlaying, isSave) {
+async function getMovies(page, isLocal, isNowPlaying, isSave, isInteractive) {
   spinner.start(
     `${chalk.bold(`${chalk.yellow("Fetching the movies data...")}`)}`
   );
@@ -244,7 +259,7 @@ async function getMovies(page, isLocal, isNowPlaying, isSave) {
       spinner.succeed(spinnerText);
       notify("Movies saved to file!");
     } else {
-      if (moviesJson.page !== page) {
+      if (moviesJson.page !== page && !isInteractive) {
         spinner.fail(
           chalk.bold(
             chalk.red(
@@ -264,7 +279,7 @@ async function getMovies(page, isLocal, isNowPlaying, isSave) {
   }
 }
 
-async function getMovie(id, isReviews, isLocal, isSave) {
+async function getMovie(id, isReviews, isLocal, isSave, isInteractive) {
   try {
     spinner.start(
       `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
@@ -284,17 +299,16 @@ async function getMovie(id, isReviews, isLocal, isSave) {
       }
     }
     if (isSave === true) {
+      fileSystem.saveMovie(singleMovieJson);
+      spinner.succeed("Movie data saved to file");
+      notify("Movie data saved to file!");
       if (isReviews === true) {
         fileSystem.saveMovieReview(movieReviewsJson);
         spinner.succeed("Reviews data saved to file");
         notify("Reviews saved to file!");
-      } else {
-        fileSystem.saveMovie(singleMovieJson);
-        spinner.succeed("Movie data saved to file");
-        notify("Reviews saved to file!");
       }
     } else {
-      if (singleMovieJson.id !== movieId) {
+      if (singleMovieJson.id !== movieId && !isInteractive) {
         spinner.fail(
           chalk.bold(
             chalk.red(
@@ -304,7 +318,7 @@ async function getMovie(id, isReviews, isLocal, isSave) {
         );
       } else {
         render.renderSingleMovie(singleMovieJson);
-        if (options.reviews === true) {
+        if (isReviews === true) {
           render.renderReviews(movieReviewsJson);
           spinner.succeed("Movie reviews data loaded");
         } else {
@@ -319,7 +333,7 @@ async function getMovie(id, isReviews, isLocal, isSave) {
   }
 }
 
-async function getPersons(page, isLocal, isSave) {
+async function getPersons(page, isLocal, isSave, isInteractive) {
   spinner.start(
     `${chalk.bold(`${chalk.yellow(" Fetching the popular person's data...")}`)}`
   );
@@ -327,7 +341,7 @@ async function getPersons(page, isLocal, isSave) {
   try {
     if (isLocal === true) {
       const json = await fileSystem.loadPopularPersons();
-      if (json.page !== page) {
+      if (json.page !== page && !isInteractive) {
         spinner.fail(
           chalk.bold(
             chalk.red(
@@ -358,7 +372,7 @@ async function getPersons(page, isLocal, isSave) {
   }
 }
 
-async function getPerson(id, isLocal, isSave) {
+async function getPerson(id, isLocal, isSave, isInteractive) {
   try {
     let json = {};
     spinner.start(
@@ -375,7 +389,7 @@ async function getPerson(id, isLocal, isSave) {
       spinner.succeed("Person data saved to file");
       notify("Person saved to file!");
     } else {
-      if (json.id !== personId) {
+      if (json.id !== personId && !isInteractive) {
         spinner.fail(
           chalk.bold(
             chalk.red(
