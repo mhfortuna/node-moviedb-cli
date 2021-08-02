@@ -34,49 +34,9 @@ program
   .option("-n, --now-playing", "Fetch the movies that are playing now")
   .option("--save", "Save the movies to /files/movies")
   .option("--local", "Fetch the movies from /files/movies")
-  .action(async function handleAction(options) {
-    spinner.start(
-      `${chalk.bold(`${chalk.yellow("Fetching the movies data...")}`)}`
-    );
-    const page = parseInt(options.page);
-    let moviesJson = {};
-    let spinnerText = "";
-    try {
-      if (options.local === true) {
-        if (options.nowPlaying === true) {
-          moviesJson = await fileSystem.loadMovies(options.nowPlaying);
-          spinnerText = "Movies playing now data loaded";
-        } else {
-          moviesJson = await fileSystem.loadMovies(options.nowPlaying);
-          spinnerText = "Popular movies data loaded";
-        }
-      } else {
-        if (options.nowPlaying === true) {
-          moviesJson = await request.getNowPlayingMovies(page);
-          spinnerText = "Movies playing now data loaded";
-        } else {
-          moviesJson = await request.getPopularMovies(page);
-          spinnerText = "Popular movies data loaded";
-        }
-      }
-      if (options.save === true) {
-        await fileSystem.saveMovies(moviesJson, options.nowPlaying);
-        spinnerText += " and saved to file/movies";
-        notify("Movies saved to file!");
-      } else {
-        render.renderMovies(
-          moviesJson.page,
-          moviesJson.total_pages,
-          moviesJson.results
-        );
-      }
-      spinner.succeed(spinnerText);
-    } catch (error) {
-      setTimeout(() => {
-        spinner.fail(chalk.bold(chalk.red(error)));
-      }, 1000);
-    }
-  });
+  .action((options) =>
+    getMovies(options.page, options.local, options.nowPlaying, options.save)
+  );
 
 program
   .command("get-movie")
@@ -100,6 +60,173 @@ program
     }
   });
 
+program
+  .command("interactive")
+  .description("Interactive way to make the same requests")
+  .action(async function handleAction() {
+    const inquirer = require("inquirer");
+
+    await inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "actionOption",
+          message: "What do you want fetch?",
+          choices: [
+            "Popular movies",
+            "Now playing movies",
+            "A specific movie",
+            "Popular persons",
+            "A specific person",
+          ],
+        },
+        {
+          type: "confirm",
+          name: "fetchOption",
+          message:
+            "Do you want to fetch it from the web? The alternative is from a JSON stored",
+          default: true,
+        },
+      ])
+      .then(async (answers) => {
+        if (answers["fetchOption"] === true) {
+          await inquirer
+            .prompt([
+              {
+                type: "confirm",
+                name: "saveOption",
+                message: "Do you want to save it to a file? (no by default)",
+                default: false,
+              },
+            ])
+            .then(async (saveAnswer) => {
+              answers = { ...answers, ...saveAnswer };
+              switch (answers["actionOption"]) {
+                case "Popular movies":
+                case "Now playing movies":
+                  await inquirer
+                    .prompt([
+                      {
+                        type: "number",
+                        name: "page",
+                        message: "What page do you want to fetch?",
+                        default: 1,
+                        validate(value) {
+                          if (value === parseInt(value)) {
+                            return true;
+                          } else {
+                            return "The page number must be a number";
+                          }
+                        },
+                      },
+                    ])
+                    .then((answerPage) => {
+                      answers = { ...answers, ...answerPage };
+                    });
+                  break;
+                case "A specific movie":
+                  await inquirer
+                    .prompt([
+                      {
+                        type: "number",
+                        name: "movieId",
+                        message: "Id of the movie to fetch:",
+                        validate(value) {
+                          if (value === parseInt(value)) {
+                            return true;
+                          } else {
+                            return "The id must be a number";
+                          }
+                        },
+                      },
+                      {
+                        type: "confirm",
+                        name: "review-option",
+                        message:
+                          "Do you want to see the movie reviews also? (no by default)",
+                        default: false,
+                      },
+                    ])
+                    .then((movieAnswers) => {
+                      answers = { ...answers, ...movieAnswers };
+                    });
+
+                default:
+                  break;
+              }
+            });
+        } else {
+        }
+        const { page, fetchOption, actionOption, saveOption } = answers;
+        const isLocal = !fetchOption;
+        const isNowPlaying = actionOption === "Now playing movies";
+        switch (answers["actionOption"]) {
+          case "Popular movies":
+            getMovies(page, isLocal, isNowPlaying, saveOption);
+            break;
+          case "Now playing movies":
+            getMovies(page, isLocal, isNowPlaying, saveOption);
+            break;
+          case "A specific movie":
+            break;
+          case "Popular persons":
+            break;
+          case "A specific person":
+            break;
+
+          default:
+            break;
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  });
+
 //TODO error on unknown commands
 
 program.parse(process.argv);
+
+async function getMovies(page, isLocal, isNowPlaying, isSave) {
+  spinner.start(
+    `${chalk.bold(`${chalk.yellow("Fetching the movies data...")}`)}`
+  );
+  page = parseInt(page);
+  let moviesJson = {};
+  let spinnerText = "";
+  try {
+    if (isLocal === true) {
+      if (isNowPlaying === true) {
+        moviesJson = await fileSystem.loadMovies(isNowPlaying);
+        spinnerText = "Movies playing now data loaded";
+      } else {
+        moviesJson = await fileSystem.loadMovies(isNowPlaying);
+        spinnerText = "Popular movies data loaded";
+      }
+    } else {
+      if (isNowPlaying === true) {
+        moviesJson = await request.getNowPlayingMovies(page);
+        spinnerText = "Movies playing now data loaded";
+      } else {
+        moviesJson = await request.getPopularMovies(page);
+        spinnerText = "Popular movies data loaded";
+      }
+    }
+    if (isSave === true) {
+      await fileSystem.saveMovies(moviesJson, isNowPlaying);
+      spinnerText += " and saved to file/movies";
+      notify("Movies saved to file!");
+    } else {
+      render.renderMovies(
+        moviesJson.page,
+        moviesJson.total_pages,
+        moviesJson.results
+      );
+    }
+    spinner.succeed(spinnerText);
+  } catch (error) {
+    setTimeout(() => {
+      spinner.fail(chalk.bold(chalk.red(error)));
+    }, 1000);
+  }
+}
