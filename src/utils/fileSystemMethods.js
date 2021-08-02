@@ -35,6 +35,12 @@ async function saveMovies(moviesJson = {}, isNowPlaying) {
   }
 }
 
+async function savePopularPersons(personsJson = {}) {
+  const directory = "./files/persons";
+  await ensureDirectory(directory);
+  saveJson(directory, "popular-persons.json", personsJson);
+}
+
 async function loadJson(directory, fileName) {
   const promise = new Promise((resolve, reject) => {
     fs.readFile(path.resolve(directory, fileName), "utf8", (error, data) => {
@@ -63,7 +69,16 @@ async function loadMovies(isNowPlaying) {
   return json;
 }
 
+async function loadPopularPersons() {
+  const directory = "./files/persons";
+  let json = [];
+  json = await loadJson(directory, "popular-persons.json");
+  return json;
+}
+
 module.exports = {
   saveMovies: saveMovies,
   loadMovies: loadMovies,
+  savePopularPersons: savePopularPersons,
+  loadPopularPersons: loadPopularPersons,
 };

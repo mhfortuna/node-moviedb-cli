@@ -19,7 +19,9 @@ program
     "--page <number>",
     "The page of persons data results to fetch"
   )
-  .option("-p, --popular", "Fetch the popular persons")
+  .requiredOption("-p, --popular", "Fetch the popular persons")
+  .option("--save", "Save the persons to /files/persons")
+  .option("--local", "Fetch the persons from /files/persons")
   .action(async function handleAction(options) {
     spinner.start(
       `${chalk.bold(
@@ -27,15 +29,31 @@ program
       )}`
     );
     const page = parseInt(options.page);
-    const json = await request.getPopularPersons(page);
-    render.renderPersons(json);
-    spinner.succeed("Popular Persons data loaded");
+    if (options.local === true) {
+      const json = await fileSystem.loadPopularPersons();
+
+      render.renderPersons(json);
+      spinner.succeed("Popular Persons data loaded");
+    } else if (options.save === true) {
+      const json = await request.getPopularPersons(page);
+      fileSystem.savePopularPersons(json);
+      spinner.succeed(
+        "Popular Persons data saved to src/files/popular-persons.json"
+      );
+      notify("Persons saved to file!");
+    } else {
+      const json = await request.getPopularPersons(page);
+      render.renderPersons(json);
+      spinner.succeed("Popular Persons data loaded");
+    }
   });
 
 program
   .command("get-person")
   .description("Make a network request to fetch the data of a single person")
   .requiredOption("-i, --id <number> ", "The id of the person")
+  .option("--save", "Save the movies to /files/movies")
+  .option("--local", "Fetch the movies from /files/movies")
   .action(async function handleAction(options) {
     spinner.start(
       `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
@@ -103,6 +121,8 @@ program
   .description("Make a network request to fetch the data of a single person")
   .requiredOption("-i, --id <number>", "The id of the movie")
   .option("-r, --reviews", "Fetch the reviews of the movie")
+  .option("--save", "Save the movies to /files/movies")
+  .option("--local", "Fetch the movies from /files/movies")
   .action(async function handleAction(options) {
     spinner.start(
       `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
