@@ -75,27 +75,8 @@ program
   .description("Make a network request to fetch the data of a single person")
   .requiredOption("-i, --id <number>", "The id of the movie")
   .option("-r, --reviews", "Fetch the reviews of the movie")
-  .action(async function handleAction(options) {
-    spinner.start(
-      `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
-    );
-    const movieId = parseInt(options.id);
-    try {
-      const singleMovieJson = await request.getMovie(movieId);
-      render.renderSingleMovie(singleMovieJson);
-      if (options.reviews === true) {
-        const movieId = parseInt(options.id);
-        const movieReviewsJson = await request.getMovieReviews(movieId);
-        render.renderReviews(movieReviewsJson);
-        spinner.succeed("Movie reviews data loaded");
-      } else {
-        spinner.succeed("Movie data loaded");
-      }
-    } catch (error) {
-      setTimeout(() => {
-        spinner.fail(chalk.bold(chalk.red(error)));
-      }, 1000);
-    }
+  .action((options) => {
+    getMovie(options.id, options.reviews);
   });
 
 program
@@ -179,7 +160,7 @@ program
                       },
                       {
                         type: "confirm",
-                        name: "review-option",
+                        name: "reviewOption",
                         message:
                           "Do you want to see the movie reviews also? (no by default)",
                         default: false,
@@ -195,17 +176,23 @@ program
             });
         } else {
         }
-        const { page, fetchOption, actionOption, saveOption } = answers;
+        const {
+          page,
+          fetchOption,
+          actionOption,
+          saveOption,
+          movieId,
+          reviewOption,
+        } = answers;
         const isLocal = !fetchOption;
         const isNowPlaying = actionOption === "Now playing movies";
         switch (answers["actionOption"]) {
           case "Popular movies":
-            getMovies(page, isLocal, isNowPlaying, saveOption);
-            break;
           case "Now playing movies":
             getMovies(page, isLocal, isNowPlaying, saveOption);
             break;
           case "A specific movie":
+            getMovie(movieId, reviewOption);
             break;
           case "Popular persons":
             break;
@@ -262,6 +249,29 @@ async function getMovies(page, isLocal, isNowPlaying, isSave) {
       );
     }
     spinner.succeed(spinnerText);
+  } catch (error) {
+    setTimeout(() => {
+      spinner.fail(chalk.bold(chalk.red(error)));
+    }, 1000);
+  }
+}
+
+async function getMovie(id, isReviews) {
+  spinner.start(
+    `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
+  );
+  const movieId = parseInt(id);
+  try {
+    const singleMovieJson = await request.getMovie(movieId);
+    render.renderSingleMovie(singleMovieJson);
+    if (isReviews === true) {
+      const movieId = parseInt(id);
+      const movieReviewsJson = await request.getMovieReviews(movieId);
+      render.renderReviews(movieReviewsJson);
+      spinner.succeed("Movie reviews data loaded");
+    } else {
+      spinner.succeed("Movie data loaded");
+    }
   } catch (error) {
     setTimeout(() => {
       spinner.fail(chalk.bold(chalk.red(error)));
