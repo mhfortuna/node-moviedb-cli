@@ -29,22 +29,28 @@ program
       )}`
     );
     const page = parseInt(options.page);
-    if (options.local === true) {
-      const json = await fileSystem.loadPopularPersons();
+    try {
+      if (options.local === true) {
+        const json = await fileSystem.loadPopularPersons();
 
-      render.renderPersons(json);
-      spinner.succeed("Popular Persons data loaded");
-    } else if (options.save === true) {
-      const json = await request.getPopularPersons(page);
-      fileSystem.savePopularPersons(json);
-      spinner.succeed(
-        "Popular Persons data saved to src/files/popular-persons.json"
-      );
-      notify("Persons saved to file!");
-    } else {
-      const json = await request.getPopularPersons(page);
-      render.renderPersons(json);
-      spinner.succeed("Popular Persons data loaded");
+        render.renderPersons(json);
+        spinner.succeed("Popular Persons data loaded");
+      } else if (options.save === true) {
+        const json = await request.getPopularPersons(page);
+        fileSystem.savePopularPersons(json);
+        spinner.succeed(
+          "Popular Persons data saved to src/files/popular-persons.json"
+        );
+        notify("Persons saved to file!");
+      } else {
+        const json = await request.getPopularPersons(page);
+        render.renderPersons(json);
+        spinner.succeed("Popular Persons data loaded");
+      }
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
     }
   });
 
@@ -55,22 +61,28 @@ program
   .option("--save", "Save the movies to /files/movies")
   .option("--local", "Fetch the movies from /files/movies")
   .action(async function handleAction(options) {
-    let json = {};
-    spinner.start(
-      `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
-    );
-    const personId = parseInt(options.id);
-    if (options.local === true) {
-      json = await fileSystem.loadPerson();
-    } else {
-      json = await request.getPerson(personId);
-    }
-    if (options.save === true) {
-      fileSystem.savePerson(json);
-      spinner.succeed("Person data saved to file");
-    } else {
-      render.renderPersonDetails(json);
-      spinner.succeed("Person data loaded");
+    try {
+      let json = {};
+      spinner.start(
+        `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
+      );
+      const personId = parseInt(options.id);
+      if (options.local === true) {
+        json = await fileSystem.loadPerson();
+      } else {
+        json = await request.getPerson(personId);
+      }
+      if (options.save === true) {
+        fileSystem.savePerson(json);
+        spinner.succeed("Person data saved to file");
+      } else {
+        render.renderPersonDetails(json);
+        spinner.succeed("Person data loaded");
+      }
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
     }
   });
 
@@ -124,7 +136,16 @@ program
         spinner.fail(chalk.bold(chalk.red(error)));
       }, 1000);
     }
+    render.renderMovies(
+      moviesJson.page,
+      moviesJson.total_pages,
+      moviesJson.results
+    );
+    spinner.succeed(spinnerText);
   });
+// .catch(() => {
+//   throw "new Error";
+// });
 
 program
   .command("get-movie")
@@ -138,15 +159,21 @@ program
       `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
     );
     const movieId = parseInt(options.id);
-    const singleMovieJson = await request.getMovie(movieId);
-    render.renderSingleMovie(singleMovieJson);
-    if (options.reviews === true) {
-      const movieId = parseInt(options.id);
-      const movieReviewsJson = await request.getMovieReviews(movieId);
-      render.renderReviews(movieReviewsJson);
-      spinner.succeed("Movie reviews data loaded");
-    } else {
-      spinner.succeed("Movie data loaded");
+    try {
+      const singleMovieJson = await request.getMovie(movieId);
+      render.renderSingleMovie(singleMovieJson);
+      if (options.reviews === true) {
+        const movieId = parseInt(options.id);
+        const movieReviewsJson = await request.getMovieReviews(movieId);
+        render.renderReviews(movieReviewsJson);
+        spinner.succeed("Movie reviews data loaded");
+      } else {
+        spinner.succeed("Movie data loaded");
+      }
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
     }
   });
 
