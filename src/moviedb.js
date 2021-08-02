@@ -15,15 +15,47 @@ program.version("0.0.1");
 program
   .command("get-persons")
   .description("Make a network request to fetch most popular persons")
-  .action(function handleAction() {
-    console.log("hello-world");
+  .requiredOption(
+    "--page <number>",
+    "The page of persons data results to fetch"
+  )
+  .option("-p, --popular", "Fetch the popular persons")
+  .action(async function handleAction(options) {
+    spinner.start(
+      `${chalk.bold(
+        `${chalk.yellow(" Fetching the popular person's data...")}`
+      )}`
+    );
+    const page = parseInt(options.page);
+    try {
+      const json = await request.getPopularPersons(page);
+      render.renderPersons(json);
+      spinner.succeed("Popular Persons data loaded");
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
+    }
   });
 
 program
   .command("get-person")
   .description("Make a network request to fetch the data of a single person")
-  .action(function handleAction() {
-    console.log("hello-world");
+  .requiredOption("-i, --id <number> ", "The id of the person")
+  .action(async function handleAction(options) {
+    spinner.start(
+      `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
+    );
+    const personId = parseInt(options.id);
+    try {
+      const json = await request.getPerson(personId);
+      render.renderPersonDetails(json);
+      spinner.succeed("Person data loaded");
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
+    }
   });
 
 program
@@ -48,15 +80,21 @@ program
       `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
     );
     const movieId = parseInt(options.id);
-    const singleMovieJson = await request.getMovie(movieId);
-    render.renderSingleMovie(singleMovieJson);
-    if (options.reviews === true) {
-      const movieId = parseInt(options.id);
-      const movieReviewsJson = await request.getMovieReviews(movieId);
-      render.renderReviews(movieReviewsJson);
-      spinner.succeed("Movie reviews data loaded");
-    } else {
-      spinner.succeed("Movie data loaded");
+    try {
+      const singleMovieJson = await request.getMovie(movieId);
+      render.renderSingleMovie(singleMovieJson);
+      if (options.reviews === true) {
+        const movieId = parseInt(options.id);
+        const movieReviewsJson = await request.getMovieReviews(movieId);
+        render.renderReviews(movieReviewsJson);
+        spinner.succeed("Movie reviews data loaded");
+      } else {
+        spinner.succeed("Movie data loaded");
+      }
+    } catch (error) {
+      setTimeout(() => {
+        spinner.fail(chalk.bold(chalk.red(error)));
+      }, 1000);
     }
   });
 

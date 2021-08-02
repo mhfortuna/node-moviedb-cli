@@ -9,6 +9,82 @@ const globalOptions = {
   maxRedirects: 20,
 };
 
+async function getPopularPersons(page = 1) {
+  const options = {
+    ...globalOptions,
+    method: "GET",
+    path: `/3/person/popular?page=${page}`,
+  };
+  let promise = new Promise((resolve, reject) => {
+    const request = https.request(options, (res) => {
+      let chunks = [];
+      res.on("data", (chunk) => {
+        chunks.push(chunk);
+      });
+
+      res.on("end", (chunk) => {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      });
+    });
+
+    request.on("error", function (error) {
+      reject(error);
+    });
+    request.end();
+  });
+  return await promise;
+}
+
+async function getPersons(page = 2) {
+  const options = {
+    ...globalOptions,
+    method: "GET",
+    path: `/3/person/popular?page=${page}`,
+  };
+  let promise = new Promise((resolve, reject) => {
+    const request = https.request(options, (res) => {
+      let chunks = [];
+      res.on("data", (chunk) => {
+        chunks.push(chunk);
+      });
+      res.on("end", (chunk) => {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      });
+    });
+
+    request.on("error", function (error) {
+      reject(error);
+    });
+    request.end();
+  });
+  return await promise;
+}
+
+async function getPerson(personId = 990393) {
+  const options = {
+    ...globalOptions,
+    method: "GET",
+    path: `/3/person/${personId}`,
+  };
+  let promise = new Promise((resolve, reject) => {
+    const request = https.request(options, (res) => {
+      let chunks = [];
+      res.on("data", (chunk) => {
+        chunks.push(chunk);
+      });
+      res.on("end", (chunk) => {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      });
+    });
+
+    request.on("error", function (error) {
+      reject(error);
+    });
+    request.end();
+  });
+  return await promise;
+}
+
 async function getPopularMovies(page = 1) {
   const options = {
     ...globalOptions,
@@ -26,10 +102,9 @@ async function getPopularMovies(page = 1) {
       res.on("end", function (chunk) {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
       });
-
-      res.on("error", function (error) {
-        reject(error);
-      });
+    });
+    req.on("error", function (error) {
+      reject(error);
     });
 
     req.end();
@@ -54,10 +129,10 @@ async function getNowPlayingMovies(page = 1) {
       res.on("end", function (chunk) {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
       });
+    });
 
-      res.on("error", function (error) {
-        reject(error);
-      });
+    req.on("error", function (error) {
+      reject(error);
     });
 
     req.end();
@@ -82,10 +157,9 @@ async function getMovie(movieId = 460465) {
       res.on("end", function (chunk) {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
       });
-
-      res.on("error", function (error) {
-        reject(error);
-      });
+    });
+    req.on("error", function (error) {
+      reject(error);
     });
 
     req.end();
@@ -110,10 +184,9 @@ async function getMovieReviews(movieId = 460465) {
       res.on("end", function (chunk) {
         resolve(JSON.parse(Buffer.concat(chunks).toString()));
       });
-
-      res.on("error", function (error) {
-        reject(error);
-      });
+    });
+    req.on("error", function (error) {
+      reject(error);
     });
 
     req.end();
@@ -126,4 +199,7 @@ module.exports = {
   getNowPlayingMovies: getNowPlayingMovies,
   getMovie: getMovie,
   getMovieReviews: getMovieReviews,
+  getPopularPersons: getPopularPersons,
+  getPerson: getPerson,
+  getPersons: getPersons,
 };
