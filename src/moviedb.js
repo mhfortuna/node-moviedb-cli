@@ -241,15 +241,22 @@ async function getMovies(page, isLocal, isNowPlaying, isSave) {
     if (isSave === true) {
       await fileSystem.saveMovies(moviesJson, isNowPlaying);
       spinnerText += " and saved to file/movies";
+      spinner.succeed(spinnerText);
       notify("Movies saved to file!");
     } else {
-      render.renderMovies(
-        moviesJson.page,
-        moviesJson.total_pages,
-        moviesJson.results
-      );
+      if (moviesJson.page !== page) {
+        spinner.fail(
+          chalk.bold(
+            chalk.red(
+              `You have stored the page number ${moviesJson.page} on your local`
+            )
+          )
+        );
+      } else {
+        render.renderMovies(moviesJson);
+        spinner.succeed(spinnerText);
+      }
     }
-    spinner.succeed(spinnerText);
   } catch (error) {
     setTimeout(() => {
       spinner.fail(chalk.bold(chalk.red(error)));
@@ -277,20 +284,32 @@ async function getMovie(id, isReviews, isLocal, isSave) {
       }
     }
     if (isSave === true) {
-      await fileSystem.saveMovie(singleMovieJson);
-      spinner.succeed("Movie data saved to file");
-      notify("Reviews saved to file!");
       if (isReviews === true) {
-        await fileSystem.saveMovieReview(movieReviewsJson);
+        fileSystem.saveMovieReview(movieReviewsJson);
         spinner.succeed("Reviews data saved to file");
+        notify("Reviews saved to file!");
+      } else {
+        fileSystem.saveMovie(singleMovieJson);
+        spinner.succeed("Movie data saved to file");
         notify("Reviews saved to file!");
       }
     } else {
-      render.renderSingleMovie(singleMovieJson);
-      spinner.succeed("Movie data loaded");
-      if (isReviews === true) {
-        render.renderReviews(movieReviewsJson);
-        spinner.succeed("Movie reviews data loaded");
+      if (singleMovieJson.id !== movieId) {
+        spinner.fail(
+          chalk.bold(
+            chalk.red(
+              `You have stored the movie with the id number ${singleMovieJson.id} on your local file`
+            )
+          )
+        );
+      } else {
+        render.renderSingleMovie(singleMovieJson);
+        if (options.reviews === true) {
+          render.renderReviews(movieReviewsJson);
+          spinner.succeed("Movie reviews data loaded");
+        } else {
+          spinner.succeed("Movie data loaded");
+        }
       }
     }
   } catch (error) {
@@ -308,9 +327,18 @@ async function getPersons(page, isLocal, isSave) {
   try {
     if (isLocal === true) {
       const json = await fileSystem.loadPopularPersons();
-
-      render.renderPersons(json);
-      spinner.succeed("Popular Persons data loaded");
+      if (json.page !== page) {
+        spinner.fail(
+          chalk.bold(
+            chalk.red(
+              `You have stored the person on page number ${json.page} on your local file`
+            )
+          )
+        );
+      } else {
+        render.renderPersons(json);
+        spinner.succeed("Popular Persons data loaded");
+      }
     } else if (isSave === true) {
       const json = await request.getPopularPersons(page);
       await fileSystem.savePopularPersons(json);
@@ -345,9 +373,20 @@ async function getPerson(id, isLocal, isSave) {
     if (isSave === true) {
       await fileSystem.savePerson(json);
       spinner.succeed("Person data saved to file");
+      notify("Person saved to file!");
     } else {
-      render.renderPersonDetails(json);
-      spinner.succeed("Person data loaded");
+      if (json.id !== personId) {
+        spinner.fail(
+          chalk.bold(
+            chalk.red(
+              `You have stored the person with the id ${json.id} on your local file`
+            )
+          )
+        );
+      } else {
+        render.renderPersonDetails(json);
+        spinner.succeed("Person data loaded");
+      }
     }
   } catch (error) {
     setTimeout(() => {
