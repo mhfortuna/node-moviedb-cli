@@ -148,7 +148,7 @@ program
                     .then((movieAnswers) => {
                       answers = { ...answers, ...movieAnswers };
                     });
-
+                  break;
                 case "A specific person":
                   await inquirer
                     .prompt([
@@ -168,12 +168,11 @@ program
                     .then((movieAnswers) => {
                       answers = { ...answers, ...movieAnswers };
                     });
-
+                  break;
                 default:
                   break;
               }
             });
-        } else {
         }
         const {
           page,
@@ -258,21 +257,41 @@ async function getMovies(page, isLocal, isNowPlaying, isSave) {
   }
 }
 
-async function getMovie(id, isReviews) {
-  spinner.start(
-    `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
-  );
-  const movieId = parseInt(id);
+async function getMovie(id, isReviews, isLocal, isSave) {
   try {
-    const singleMovieJson = await request.getMovie(movieId);
-    render.renderSingleMovie(singleMovieJson);
-    if (isReviews === true) {
-      const movieId = parseInt(id);
-      const movieReviewsJson = await request.getMovieReviews(movieId);
-      render.renderReviews(movieReviewsJson);
-      spinner.succeed("Movie reviews data loaded");
+    spinner.start(
+      `${chalk.bold(`${chalk.yellow("Fetching the movie data...")}`)}`
+    );
+    const movieId = parseInt(id);
+    let singleMovieJson = {};
+    let movieReviewsJson = {};
+    if (isLocal === true) {
+      singleMovieJson = await fileSystem.loadMovie();
+      if (isReviews === true) {
+        movieReviewsJson = await fileSystem.loadMovieReviews(movieId);
+      }
     } else {
+      singleMovieJson = await request.getMovie(movieId);
+      if (isReviews === true) {
+        movieReviewsJson = await request.getMovieReviews(movieId);
+      }
+    }
+    if (isSave === true) {
+      await fileSystem.saveMovie(singleMovieJson);
+      spinner.succeed("Movie data saved to file");
+      notify("Reviews saved to file!");
+      if (isReviews === true) {
+        await fileSystem.saveMovieReview(movieReviewsJson);
+        spinner.succeed("Reviews data saved to file");
+        notify("Reviews saved to file!");
+      }
+    } else {
+      render.renderSingleMovie(singleMovieJson);
       spinner.succeed("Movie data loaded");
+      if (isReviews === true) {
+        render.renderReviews(movieReviewsJson);
+        spinner.succeed("Movie reviews data loaded");
+      }
     }
   } catch (error) {
     setTimeout(() => {
