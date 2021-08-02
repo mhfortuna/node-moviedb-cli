@@ -30,30 +30,8 @@ program
   .requiredOption("-i, --id <number> ", "The id of the person")
   .option("--save", "Save the movies to /files/movies")
   .option("--local", "Fetch the movies from /files/movies")
-  .action(async function handleAction(options) {
-    try {
-      let json = {};
-      spinner.start(
-        `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
-      );
-      const personId = parseInt(options.id);
-      if (options.local === true) {
-        json = await fileSystem.loadPerson();
-      } else {
-        json = await request.getPerson(personId);
-      }
-      if (options.save === true) {
-        await fileSystem.savePerson(json);
-        spinner.succeed("Person data saved to file");
-      } else {
-        render.renderPersonDetails(json);
-        spinner.succeed("Person data loaded");
-      }
-    } catch (error) {
-      setTimeout(() => {
-        spinner.fail(chalk.bold(chalk.red(error)));
-      }, 1000);
-    }
+  .action((options) => {
+    getPerson(options.id, options.local, options.save);
   });
 
 program
@@ -171,6 +149,26 @@ program
                       answers = { ...answers, ...movieAnswers };
                     });
 
+                case "A specific person":
+                  await inquirer
+                    .prompt([
+                      {
+                        type: "number",
+                        name: "personId",
+                        message: "Id of the person to fetch:",
+                        validate(value) {
+                          if (value === parseInt(value)) {
+                            return true;
+                          } else {
+                            return "The id must be a number";
+                          }
+                        },
+                      },
+                    ])
+                    .then((movieAnswers) => {
+                      answers = { ...answers, ...movieAnswers };
+                    });
+
                 default:
                   break;
               }
@@ -184,6 +182,7 @@ program
           saveOption,
           movieId,
           reviewOption,
+          personId,
         } = answers;
         const isLocal = !fetchOption;
         const isNowPlaying = actionOption === "Now playing movies";
@@ -193,12 +192,13 @@ program
             getMovies(page, isLocal, isNowPlaying, saveOption);
             break;
           case "A specific movie":
-            getMovie(movieId, reviewOption);
+            getMovie(movieId, reviewOption, isLocal, saveOption);
             break;
           case "Popular persons":
             getPersons(page, isLocal, saveOption);
             break;
           case "A specific person":
+            getPerson(personId, isLocal, saveOption);
             break;
 
           default:
@@ -303,6 +303,32 @@ async function getPersons(page, isLocal, isSave) {
       const json = await request.getPopularPersons(page);
       render.renderPersons(json);
       spinner.succeed("Popular Persons data loaded");
+    }
+  } catch (error) {
+    setTimeout(() => {
+      spinner.fail(chalk.bold(chalk.red(error)));
+    }, 1000);
+  }
+}
+
+async function getPerson(id, isLocal, isSave) {
+  try {
+    let json = {};
+    spinner.start(
+      `${chalk.bold(`${chalk.yellow("Fetching the person's data...")}`)}`
+    );
+    const personId = parseInt(id);
+    if (isLocal === true) {
+      json = await fileSystem.loadPerson();
+    } else {
+      json = await request.getPerson(personId);
+    }
+    if (isSave === true) {
+      await fileSystem.savePerson(json);
+      spinner.succeed("Person data saved to file");
+    } else {
+      render.renderPersonDetails(json);
+      spinner.succeed("Person data loaded");
     }
   } catch (error) {
     setTimeout(() => {
