@@ -22,37 +22,7 @@ program
   .requiredOption("-p, --popular", "Fetch the popular persons")
   .option("--save", "Save the persons to /files/persons")
   .option("--local", "Fetch the persons from /files/persons")
-  .action(async function handleAction(options) {
-    spinner.start(
-      `${chalk.bold(
-        `${chalk.yellow(" Fetching the popular person's data...")}`
-      )}`
-    );
-    const page = parseInt(options.page);
-    try {
-      if (options.local === true) {
-        const json = await fileSystem.loadPopularPersons();
-
-        render.renderPersons(json);
-        spinner.succeed("Popular Persons data loaded");
-      } else if (options.save === true) {
-        const json = await request.getPopularPersons(page);
-        fileSystem.savePopularPersons(json);
-        spinner.succeed(
-          "Popular Persons data saved to src/files/popular-persons.json"
-        );
-        notify("Persons saved to file!");
-      } else {
-        const json = await request.getPopularPersons(page);
-        render.renderPersons(json);
-        spinner.succeed("Popular Persons data loaded");
-      }
-    } catch (error) {
-      setTimeout(() => {
-        spinner.fail(chalk.bold(chalk.red(error)));
-      }, 1000);
-    }
-  });
+  .action((options) => getPersons(options.page, options.local, options.save));
 
 program
   .command("get-person")
@@ -73,7 +43,7 @@ program
         json = await request.getPerson(personId);
       }
       if (options.save === true) {
-        fileSystem.savePerson(json);
+        await fileSystem.savePerson(json);
         spinner.succeed("Person data saved to file");
       } else {
         render.renderPersonDetails(json);
@@ -153,6 +123,7 @@ program
               switch (answers["actionOption"]) {
                 case "Popular movies":
                 case "Now playing movies":
+                case "Popular persons":
                   await inquirer
                     .prompt([
                       {
@@ -225,6 +196,7 @@ program
             getMovie(movieId, reviewOption);
             break;
           case "Popular persons":
+            getPersons(page, isLocal, saveOption);
             break;
           case "A specific person":
             break;
@@ -301,6 +273,36 @@ async function getMovie(id, isReviews) {
       spinner.succeed("Movie reviews data loaded");
     } else {
       spinner.succeed("Movie data loaded");
+    }
+  } catch (error) {
+    setTimeout(() => {
+      spinner.fail(chalk.bold(chalk.red(error)));
+    }, 1000);
+  }
+}
+
+async function getPersons(page, isLocal, isSave) {
+  spinner.start(
+    `${chalk.bold(`${chalk.yellow(" Fetching the popular person's data...")}`)}`
+  );
+  page = parseInt(page);
+  try {
+    if (isLocal === true) {
+      const json = await fileSystem.loadPopularPersons();
+
+      render.renderPersons(json);
+      spinner.succeed("Popular Persons data loaded");
+    } else if (isSave === true) {
+      const json = await request.getPopularPersons(page);
+      await fileSystem.savePopularPersons(json);
+      spinner.succeed(
+        "Popular Persons data saved to src/files/popular-persons.json"
+      );
+      notify("Persons saved to file!");
+    } else {
+      const json = await request.getPopularPersons(page);
+      render.renderPersons(json);
+      spinner.succeed("Popular Persons data loaded");
     }
   } catch (error) {
     setTimeout(() => {
